@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { ScrollData } from '../types';
+import { CelticBorder } from './CelticBorder';
 
 interface ScrollPreviewProps {
   data: ScrollData;
@@ -32,7 +33,8 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
     titleFontSize,
     recipientFontSize,
     bodyFontSize,
-    signatureFontSize
+    signatureFontSize,
+    border
   } = data;
 
   const isLandscape = orientation === 'landscape';
@@ -44,6 +46,31 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
 
   // Scaling state
   const [scales, setScales] = useState({ reason: 1, title: 1, recipient: 1 });
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+  // Update dimensions for border generation
+  useEffect(() => {
+    if (scrollContentRef.current) {
+        setDimensions({
+            width: scrollContentRef.current.clientWidth,
+            height: scrollContentRef.current.clientHeight
+        });
+    }
+  }, [orientation, border.size, border.thickness, border.inset]);
+
+  // Also update on resize
+  useEffect(() => {
+    const handleResize = () => {
+        if (scrollContentRef.current) {
+            setDimensions({
+                width: scrollContentRef.current.clientWidth,
+                height: scrollContentRef.current.clientHeight
+            });
+        }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   // Reset scales when data impacting layout changes
   useEffect(() => {
@@ -120,15 +147,18 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
   };
 
   // Border Style
-  const borderClass = `border-[12px] double ${theme.borderColor}`;
+  // If Celtic border is enabled, we remove the CSS border
+  const borderClass = border.enabled ? '' : `border-[12px] double ${theme.borderColor}`;
 
   const displayName = awardType === 'Custom Award' ? customAwardName : awardType;
 
   // Orientation logic
   const aspectRatioClass = isLandscape ? 'aspect-[1.29/1]' : 'aspect-[1/1.29]';
   
-  // Padding - slightly reduced to allow better edge fitting
-  const paddingClass = isLandscape ? 'p-8 md:p-12' : 'p-8 md:p-12';
+  // Padding - Increase if border is enabled to prevent overlap
+  const basePadding = isLandscape ? 32 : 48; // px
+  const borderPadding = border.enabled ? (border.thickness * border.size) + border.inset + 10 : 0;
+  const paddingStyle = { padding: `${Math.max(basePadding, borderPadding)}px` };
 
   // Apply a slight scale down for fonts in landscape mode to ensure fit
   const fontScale = isLandscape ? 0.85 : 1.0;
@@ -148,6 +178,7 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
     switch (heraldryPosition) {
       case 'top-left':
         positionClasses = `absolute ${isLandscape ? 'top-8 left-8 w-20 h-20' : 'top-12 left-12 w-24 h-24'} object-contain opacity-90 z-10`;
+        // Adjust for border if needed
         break;
       case 'top-right':
         positionClasses = `absolute ${isLandscape ? 'top-8 right-8 w-20 h-20' : 'top-12 right-12 w-24 h-24'} object-contain opacity-90 z-10`;
@@ -166,13 +197,11 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
   return (
     <div className="w-full h-full flex items-center justify-center p-4 bg-stone-800/50 backdrop-blur-sm overflow-hidden">
       {/* The Scroll Sheet - Fixed Page Size Strategy */}
-      {/* We use h-[95vh] to fix the height to the viewport, ensuring the aspect ratio constrains width. */}
-      {/* In print, the media query overrides this to 100vh/100vw */}
       <div 
         ref={scrollContentRef}
         id="scroll-content"
-        className={`print-area relative bg-gradient-to-br ${theme.bgGradient} shadow-2xl ${borderClass} ${aspectRatioClass} h-[95vh] w-auto max-w-[95vw] flex flex-col items-center ${paddingClass} text-center select-none overflow-hidden`}
-        style={containerStyle}
+        className={`print-area relative bg-gradient-to-br ${theme.bgGradient} shadow-2xl ${borderClass} ${aspectRatioClass} h-[95vh] w-auto max-w-[95vw] flex flex-col items-center text-center select-none overflow-hidden`}
+        style={{...containerStyle, ...paddingStyle}}
       >
         {/* Texture Overlay */}
         <div 
@@ -183,18 +212,33 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
           }}
         />
 
+        {/* Celtic Border Layer */}
+        {border.enabled && dimensions.width > 0 && (
+          <CelticBorder 
+            width={dimensions.width}
+            height={dimensions.height}
+            size={border.size}
+            thickness={border.thickness}
+            inset={border.inset}
+            color={border.color}
+            strokeWidth={border.strokeWidth}
+            innerColor={border.innerColor}
+            pattern={border.pattern}
+            cornerStyle={border.cornerStyle}
+          />
+        )}
+
         {/* Heraldry Layer */}
         {renderHeraldry()}
 
         {/* Content Flex Container - Fills the Page */}
-        {/* z-10 ensures it's above texture/heraldry */}
         <div 
           ref={containerRef}
           className="relative z-10 w-full h-full flex flex-col items-center"
         >
           
-          {/* Header Section - Shrink 0 to prevent collapse, but allows font scaling */}
-          <div className="flex-shrink-0 w-full space-y-2 pb-4">
+          {/* Top Metadata */}
+          <div className="flex-shrink-0 w-full space-y-2 pb-2">
             <div className={`text-xl uppercase tracking-[0.2em] ${theme.accentColor} opacity-70`}>
               <div 
                 className={`${editableClass} inline-block`}
@@ -204,44 +248,17 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
                 In the Lands of {location}
               </div>
             </div>
-            
-            <div className="flex flex-col items-center">
-              <div 
-                className={`${editableClass} inline-block leading-none`}
-                onClick={handleTitleClick}
-              >
-                {editableHint}
-                <h1 
-                  className={`font-bold leading-tight ${theme.accentColor} drop-shadow-sm px-4`}
-                  style={{ fontFamily: titleFont, fontSize: `${tSize}px`, transition: 'font-size 0.2s' }}
-                >
-                  {displayName}
-                </h1>
-              </div>
-              
-              {awardLevel > 0 && (
-                <div 
-                   className={`${editableClass} mt-2 inline-block`}
-                   onClick={(e) => handleEdit('awardLevel', e)}
-                >
-                  <h2 className={`uppercase tracking-widest ${theme.accentColor} opacity-90 font-serif`} style={{ fontSize: `${tSize * 0.45}px` }}>
-                    — {getOrdinalWord(awardLevel)} Order —
-                  </h2>
-                </div>
-              )}
-            </div>
           </div>
 
-          {/* Body Section - Grows to take available space. 
-              If content is too big, it will overflow this container.
-              We use overflow-hidden here to clip it visually while JS detects scrollHeight > clientHeight. */}
+          {/* Main Content Flow */}
           <div 
             ref={bodyRef}
             className="flex-grow flex flex-col justify-center items-center w-full min-h-0 overflow-hidden"
           >
-             <div className="flex flex-col items-center justify-center gap-4 w-full h-full">
+             <div className="flex flex-col items-center justify-center gap-4 md:gap-6 w-full h-full">
+                
                 {/* Intro Line */}
-                <div className={`flex-shrink-0 ${theme.accentColor}`} style={{ fontSize: `${bSize * 1.2}px` }}>
+                <div className={`flex-shrink-0 ${theme.accentColor}`} style={{ fontSize: `${bSize * 1.1}px` }}>
                   Let it be known by these words that
                 </div>
                 
@@ -259,6 +276,38 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
                   </div>
                 </div>
 
+                {/* Connecting Phrase */}
+                <div className={`flex-shrink-0 uppercase tracking-widest ${theme.accentColor} opacity-80 font-serif`} style={{ fontSize: `${bSize * 0.8}px` }}>
+                  Has been granted the
+                </div>
+
+                {/* Award Name & Level */}
+                <div className="flex flex-col items-center">
+                  <div 
+                    className={`${editableClass} inline-block leading-none`}
+                    onClick={handleTitleClick}
+                  >
+                    {editableHint}
+                    <h1 
+                      className={`font-bold leading-tight ${theme.accentColor} drop-shadow-sm px-4`}
+                      style={{ fontFamily: titleFont, fontSize: `${tSize}px`, transition: 'font-size 0.2s' }}
+                    >
+                      {displayName}
+                    </h1>
+                  </div>
+                  
+                  {awardLevel > 0 && (
+                    <div 
+                       className={`${editableClass} mt-2 inline-block`}
+                       onClick={(e) => handleEdit('awardLevel', e)}
+                    >
+                      <h2 className={`uppercase tracking-widest ${theme.accentColor} opacity-90 font-serif`} style={{ fontSize: `${tSize * 0.45}px` }}>
+                        — {getOrdinalWord(awardLevel)} Order —
+                      </h2>
+                    </div>
+                  )}
+                </div>
+
                 {/* Reason - Dynamic Scale - Can shrink significantly */}
                 <div 
                   className={`${editableClass} leading-relaxed text-stone-800 italic px-8 whitespace-pre-wrap max-w-2xl`}
@@ -271,7 +320,7 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
              </div>
           </div>
 
-          {/* Footer Section - Pinned to bottom via flex layout (flex-grow on body pushes this down) */}
+          {/* Footer Section */}
           <div className="flex-shrink-0 w-full grid grid-cols-2 gap-8 pt-6 mt-4 border-t border-stone-400/30">
             <div className="flex flex-col items-center gap-1">
               <div className={editableClass} onClick={(e) => handleEdit('date', e)}>

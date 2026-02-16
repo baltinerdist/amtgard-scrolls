@@ -24,7 +24,20 @@ export const DEFAULT_SCROLL_DATA = {
   heraldryImage: null,
   heraldryPosition: 'bottom-center' as const,
   
-  // Defaults
+  // Border Defaults
+  border: {
+    enabled: true,
+    size: 25,
+    thickness: 3, // Increased to 3 to make patterns visible by default
+    inset: 15,
+    color: '#7f1d1d', // Match warrior red
+    strokeWidth: 4,
+    innerColor: '#fcd34d', // Gold inner
+    pattern: 'braid' as const,
+    cornerStyle: 'round' as const,
+  },
+  
+  // Layout Defaults
   orientation: 'portrait' as const,
   titleFontSize: 64,
   recipientFontSize: 56,

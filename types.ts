@@ -30,6 +30,18 @@ export interface HeraldryPosition {
   scale: number;
 }
 
+export interface BorderConfig {
+  enabled: boolean;
+  size: number; // Cell size in pixels
+  thickness: number; // Width in cells (1, 2, 3)
+  inset: number; // Padding from edge
+  color: string;
+  strokeWidth: number; // Visual width of the line in pixels
+  innerColor?: string; // Optional inner color for ribbon effect
+  pattern: 'braid' | 'twist-x' | 'twist-y' | 'box'; // Tiling logic
+  cornerStyle: 'round' | 'sharp' | 'box'; // Visual style of edges/corners
+}
+
 export interface ScrollData {
   location: string;
   recipient: string;
@@ -47,7 +59,10 @@ export interface ScrollData {
   heraldryImage: string | null; // base64
   heraldryPosition: 'top-left' | 'top-right' | 'bottom-center' | 'watermark';
   
-  // New Layout Properties
+  // Border
+  border: BorderConfig;
+  
+  // Layout Properties
   orientation: 'portrait' | 'landscape';
   titleFontSize: number;
   recipientFontSize: number;

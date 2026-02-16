@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AwardType, ScrollData } from '../types';
 import { FONTS, THEMES } from '../constants';
-import { Scroll, Paintbrush, Printer, RotateCw, RectangleVertical, RectangleHorizontal, Minus, Plus } from 'lucide-react';
+import { Scroll, Paintbrush, Printer, RotateCw, RectangleVertical, RectangleHorizontal, Minus, Plus, Frame, X } from 'lucide-react';
 import { HeraldryUploader } from './HeraldryUploader';
 
 interface EditorControlsProps {
@@ -17,7 +17,7 @@ export const EditorControls: React.FC<EditorControlsProps> = ({
   focusField,
   onFocusConsumed
 }) => {
-  const [activeTab, setActiveTab] = useState<'text' | 'design' | 'heraldry'>('text');
+  const [activeTab, setActiveTab] = useState<'text' | 'design' | 'border' | 'heraldry'>('text');
   
   // Refs for inputs
   const locationRef = useRef<HTMLInputElement>(null);
@@ -61,6 +61,13 @@ export const EditorControls: React.FC<EditorControlsProps> = ({
 
   const updateField = (field: keyof ScrollData, value: any) => {
     onChange({ ...data, [field]: value });
+  };
+  
+  const updateBorder = (field: keyof ScrollData['border'], value: any) => {
+    onChange({ 
+      ...data, 
+      border: { ...data.border, [field]: value } 
+    });
   };
 
   const adjustFontSize = (field: keyof ScrollData, amount: number) => {
@@ -106,6 +113,12 @@ export const EditorControls: React.FC<EditorControlsProps> = ({
           className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider transition-colors ${activeTab === 'design' ? 'bg-stone-800 text-amber-500 border-b-2 border-amber-500' : 'text-stone-400 hover:text-stone-200'}`}
         >
           Design
+        </button>
+        <button 
+          onClick={() => setActiveTab('border')}
+          className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider transition-colors ${activeTab === 'border' ? 'bg-stone-800 text-amber-500 border-b-2 border-amber-500' : 'text-stone-400 hover:text-stone-200'}`}
+        >
+          Border
         </button>
         <button 
           onClick={() => setActiveTab('heraldry')}
@@ -236,164 +249,346 @@ export const EditorControls: React.FC<EditorControlsProps> = ({
         {activeTab === 'design' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             
-            {/* Orientation Toggle */}
-            <div className="flex items-center justify-between pb-4 border-b border-stone-700">
-               <div className="flex items-center gap-2 text-stone-400">
-                 <RotateCw size={16} />
-                 <span className="text-xs font-bold uppercase">Orientation</span>
-               </div>
-               <div className="flex bg-stone-800 rounded p-1 border border-stone-700">
-                 <button 
-                  onClick={() => updateField('orientation', 'portrait')}
-                  className={`p-2 rounded transition-colors ${data.orientation === 'portrait' ? 'bg-amber-600 text-white shadow-md' : 'text-stone-400 hover:text-stone-200'}`}
-                  title="Portrait"
-                 >
-                   <RectangleVertical size={18} />
-                 </button>
-                 <button 
-                  onClick={() => updateField('orientation', 'landscape')}
-                  className={`p-2 rounded transition-colors ${data.orientation === 'landscape' ? 'bg-amber-600 text-white shadow-md' : 'text-stone-400 hover:text-stone-200'}`}
-                  title="Landscape"
-                 >
-                   <RectangleHorizontal size={18} />
-                 </button>
-               </div>
-            </div>
-
+            {/* Theme Selection */}
             <div>
-              <h3 className="text-stone-400 text-xs font-bold uppercase mb-3 flex items-center gap-2">
-                <Paintbrush size={14} /> Theme Style
-              </h3>
-              <div className="grid grid-cols-2 gap-3">
+              <label className="block text-xs uppercase font-bold text-stone-400 mb-2">Scroll Theme</label>
+              <div className="grid grid-cols-2 gap-2">
                 {THEMES.map(theme => (
                   <button
                     key={theme.id}
                     onClick={() => updateField('theme', theme)}
-                    className={`relative p-3 rounded border-2 text-left transition-all overflow-hidden group ${
+                    className={`p-2 rounded border text-left text-xs font-bold transition-all flex items-center gap-2 ${
                       data.theme.id === theme.id 
-                        ? 'border-amber-500 bg-stone-800' 
-                        : 'border-stone-700 bg-stone-800/50 hover:border-stone-500'
+                        ? 'bg-stone-800 border-amber-500 ring-1 ring-amber-500 text-white' 
+                        : 'bg-stone-800 border-stone-700 text-stone-400 hover:border-stone-500'
                     }`}
                   >
-                    <div className={`absolute inset-0 bg-gradient-to-br ${theme.bgGradient} opacity-20 group-hover:opacity-30 transition-opacity`} />
-                    <span className={`relative z-10 font-bold ${data.theme.id === theme.id ? 'text-amber-500' : 'text-stone-300'}`}>
-                      {theme.name}
-                    </span>
+                    <div className={`w-4 h-4 rounded-full bg-gradient-to-br ${theme.bgGradient} border ${theme.borderColor}`}></div>
+                    {theme.name}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="space-y-6 pt-4 border-t border-stone-700">
-              <h3 className="text-stone-400 text-xs font-bold uppercase mb-1">Typography</h3>
-              
-              {/* TITLE */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-bold text-stone-300">Title</label>
-                  <div className="flex items-center gap-1 bg-stone-800 rounded border border-stone-700 p-0.5">
-                    <button onClick={() => adjustFontSize('titleFontSize', -4)} className="p-1 hover:bg-stone-700 rounded text-stone-400 hover:text-white transition-colors">
-                      <Minus size={14} />
-                    </button>
-                    <button onClick={() => adjustFontSize('titleFontSize', 4)} className="p-1 hover:bg-stone-700 rounded text-stone-400 hover:text-white transition-colors">
-                      <Plus size={14} />
-                    </button>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {FONTS.map(font => (
-                    <button
-                      key={`title-${font.value}`}
-                      onClick={() => updateField('titleFont', font.value)}
-                      className={`px-3 py-2 text-left text-sm rounded border transition-all flex justify-between items-center ${
-                        data.titleFont === font.value 
-                          ? 'bg-amber-900/30 border-amber-600 text-amber-500' 
-                          : 'bg-stone-800 border-stone-700 text-stone-400 hover:border-stone-500'
-                      }`}
-                      style={{ fontFamily: font.value }}
-                    >
-                      <span className="truncate">{font.label.split(' ')[0]}</span>
-                      {data.titleFont === font.value && <div className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0 ml-1" />}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            {/* Orientation */}
+            <div>
+               <label className="block text-xs uppercase font-bold text-stone-400 mb-2">Orientation</label>
+               <div className="flex gap-2">
+                 <button
+                   onClick={() => updateField('orientation', 'portrait')}
+                   className={`flex-1 py-2 flex items-center justify-center gap-2 rounded border text-sm font-bold transition-colors ${
+                     data.orientation === 'portrait'
+                       ? 'bg-amber-600 border-amber-500 text-white'
+                       : 'bg-stone-800 border-stone-700 text-stone-400 hover:bg-stone-700'
+                   }`}
+                 >
+                   <RectangleVertical size={16} /> Portrait
+                 </button>
+                 <button
+                   onClick={() => updateField('orientation', 'landscape')}
+                   className={`flex-1 py-2 flex items-center justify-center gap-2 rounded border text-sm font-bold transition-colors ${
+                     data.orientation === 'landscape'
+                       ? 'bg-amber-600 border-amber-500 text-white'
+                       : 'bg-stone-800 border-stone-700 text-stone-400 hover:bg-stone-700'
+                   }`}
+                 >
+                   <RectangleHorizontal size={16} /> Landscape
+                 </button>
+               </div>
+            </div>
 
-               <div className="mt-4 grid grid-cols-1 gap-5">
-                  {/* RECIPIENT */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-bold text-stone-300">Recipient</label>
-                      <div className="flex items-center gap-1 bg-stone-800 rounded border border-stone-700 p-0.5">
-                        <button onClick={() => adjustFontSize('recipientFontSize', -4)} className="p-1 hover:bg-stone-700 rounded text-stone-400 hover:text-white transition-colors">
-                          <Minus size={14} />
-                        </button>
-                        <button onClick={() => adjustFontSize('recipientFontSize', 4)} className="p-1 hover:bg-stone-700 rounded text-stone-400 hover:text-white transition-colors">
-                          <Plus size={14} />
-                        </button>
-                      </div>
-                    </div>
-                    <select 
-                      value={data.recipientFont}
-                      onChange={(e) => updateField('recipientFont', e.target.value)}
-                      className="w-full bg-stone-800 border border-stone-600 rounded p-2 text-stone-200"
-                    >
-                      {FONTS.map(font => (
-                        <option key={font.value} value={font.value}>{font.label}</option>
-                      ))}
-                    </select>
-                  </div>
+            {/* Typography */}
+            <div className="pt-4 border-t border-stone-700 space-y-4">
+               <h3 className="text-amber-500 font-bold uppercase text-sm flex items-center gap-2">
+                 <Paintbrush size={16} /> Typography
+               </h3>
 
-                  {/* BODY TEXT */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-bold text-stone-300">Body Text</label>
-                      <div className="flex items-center gap-1 bg-stone-800 rounded border border-stone-700 p-0.5">
-                        <button onClick={() => adjustFontSize('bodyFontSize', -2)} className="p-1 hover:bg-stone-700 rounded text-stone-400 hover:text-white transition-colors">
-                          <Minus size={14} />
-                        </button>
-                        <button onClick={() => adjustFontSize('bodyFontSize', 2)} className="p-1 hover:bg-stone-700 rounded text-stone-400 hover:text-white transition-colors">
-                          <Plus size={14} />
-                        </button>
-                      </div>
+               {[
+                 { label: 'Award Title', fontField: 'titleFont' as const, sizeField: 'titleFontSize' as const },
+                 { label: 'Recipient Name', fontField: 'recipientFont' as const, sizeField: 'recipientFontSize' as const },
+                 { label: 'Body Text', fontField: 'bodyFont' as const, sizeField: 'bodyFontSize' as const },
+                 { label: 'Signatures', fontField: 'signatureFont' as const, sizeField: 'signatureFontSize' as const },
+               ].map((item) => (
+                 <div key={item.fontField} className="bg-stone-800 p-3 rounded border border-stone-700">
+                    <div className="flex justify-between items-center mb-2">
+                       <label className="text-xs font-bold text-stone-400 uppercase">{item.label}</label>
+                       <span className="text-[10px] text-stone-500">{data[item.sizeField]}px</span>
                     </div>
-                    <select 
-                      value={data.bodyFont}
-                      onChange={(e) => updateField('bodyFont', e.target.value)}
-                      className="w-full bg-stone-800 border border-stone-600 rounded p-2 text-stone-200"
-                    >
-                      {FONTS.map(font => (
-                        <option key={font.value} value={font.value}>{font.label}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* SIGNATURE */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-bold text-stone-300">Signature</label>
-                      <div className="flex items-center gap-1 bg-stone-800 rounded border border-stone-700 p-0.5">
-                        <button onClick={() => adjustFontSize('signatureFontSize', -2)} className="p-1 hover:bg-stone-700 rounded text-stone-400 hover:text-white transition-colors">
-                          <Minus size={14} />
-                        </button>
-                        <button onClick={() => adjustFontSize('signatureFontSize', 2)} className="p-1 hover:bg-stone-700 rounded text-stone-400 hover:text-white transition-colors">
-                          <Plus size={14} />
-                        </button>
-                      </div>
+                    <div className="flex gap-2">
+                       <select 
+                         value={data[item.fontField]}
+                         onChange={(e) => updateField(item.fontField, e.target.value)}
+                         className="flex-1 bg-stone-900 border border-stone-600 rounded px-2 py-1 text-xs text-stone-200 focus:border-amber-500 outline-none"
+                       >
+                         {FONTS.map(f => (
+                           <option key={f.value} value={f.value}>{f.label}</option>
+                         ))}
+                       </select>
+                       
+                       <div className="flex items-center border border-stone-600 rounded bg-stone-900">
+                          <button 
+                            onClick={() => adjustFontSize(item.sizeField, -2)}
+                            className="p-1 hover:bg-stone-700 text-stone-400 hover:text-white transition-colors"
+                          >
+                            <Minus size={14} />
+                          </button>
+                          <button 
+                            onClick={() => adjustFontSize(item.sizeField, 2)}
+                            className="p-1 hover:bg-stone-700 text-stone-400 hover:text-white transition-colors"
+                          >
+                            <Plus size={14} />
+                          </button>
+                       </div>
                     </div>
-                    <select 
-                      value={data.signatureFont}
-                      onChange={(e) => updateField('signatureFont', e.target.value)}
-                      className="w-full bg-stone-800 border border-stone-600 rounded p-2 text-stone-200"
-                    >
-                      {FONTS.map(font => (
-                        <option key={font.value} value={font.value}>{font.label}</option>
-                      ))}
-                    </select>
-                  </div>
-              </div>
+                 </div>
+               ))}
             </div>
           </div>
+        )}
+
+        {/* BORDER TAB */}
+        {activeTab === 'border' && (
+           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+             <div className="flex items-center justify-between">
+                <h3 className="text-amber-500 font-bold uppercase text-sm flex items-center gap-2">
+                  <Frame size={16} /> Celtic Knot Border
+                </h3>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={data.border.enabled} 
+                    onChange={(e) => updateBorder('enabled', e.target.checked)}
+                    className="sr-only peer" 
+                  />
+                  <div className="w-11 h-6 bg-stone-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                </label>
+             </div>
+
+             {data.border.enabled ? (
+               <div className="space-y-4">
+                 <div className="bg-stone-800 p-4 rounded border border-stone-700 space-y-4">
+                    
+                    {/* Size and Thickness */}
+                    <div className="grid grid-cols-2 gap-4">
+                       <div>
+                          <div className="flex justify-between mb-1">
+                            <label className="text-xs font-bold text-stone-400 uppercase">Scale</label>
+                            <span className="text-xs text-stone-500">{data.border.size}</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="15" 
+                            max="60" 
+                            step="5"
+                            value={data.border.size} 
+                            onChange={(e) => updateBorder('size', parseInt(e.target.value))}
+                            className="w-full h-2 bg-stone-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                          />
+                       </div>
+                       <div>
+                          <div className="flex justify-between mb-1">
+                            <label className="text-xs font-bold text-stone-400 uppercase">Line Width</label>
+                            <span className="text-xs text-stone-500">{data.border.strokeWidth}px</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="1" 
+                            max="12" 
+                            step="0.5"
+                            value={data.border.strokeWidth} 
+                            onChange={(e) => updateBorder('strokeWidth', parseFloat(e.target.value))}
+                            className="w-full h-2 bg-stone-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                          />
+                       </div>
+                    </div>
+                    
+                    {/* Width in Cells */}
+                    <div>
+                      <div className="flex justify-between mb-1">
+                         <label className="text-xs font-bold text-stone-400 uppercase">Border Rows</label>
+                         <span className="text-xs text-stone-500">{data.border.thickness}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        {[1, 2, 3].map(t => (
+                          <button
+                            key={t}
+                            onClick={() => updateBorder('thickness', t)}
+                            className={`flex-1 py-2 text-xs font-bold rounded border ${
+                              data.border.thickness === t 
+                                ? 'bg-amber-600 border-amber-500 text-white' 
+                                : 'bg-stone-700 border-stone-600 text-stone-400 hover:bg-stone-600'
+                            }`}
+                          >
+                            {t} Row{t > 1 ? 's' : ''}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Corner Style */}
+                    <div>
+                       <div className="flex justify-between mb-1">
+                         <label className="block text-xs uppercase font-bold text-stone-400">Knot Style</label>
+                       </div>
+                       <div className="flex gap-2">
+                          <button
+                            onClick={() => updateBorder('cornerStyle', 'round')}
+                            className={`flex-1 py-2 text-xs font-bold rounded border ${
+                              data.border.cornerStyle === 'round' 
+                                ? 'bg-amber-600 border-amber-500 text-white' 
+                                : 'bg-stone-700 border-stone-600 text-stone-400 hover:bg-stone-600'
+                            }`}
+                          >
+                            Rounded
+                          </button>
+                          <button
+                            onClick={() => updateBorder('cornerStyle', 'sharp')}
+                            className={`flex-1 py-2 text-xs font-bold rounded border ${
+                              data.border.cornerStyle === 'sharp' 
+                                ? 'bg-amber-600 border-amber-500 text-white' 
+                                : 'bg-stone-700 border-stone-600 text-stone-400 hover:bg-stone-600'
+                            }`}
+                          >
+                            Angular
+                          </button>
+                           <button
+                            onClick={() => updateBorder('cornerStyle', 'box')}
+                            className={`flex-1 py-2 text-xs font-bold rounded border ${
+                              data.border.cornerStyle === 'box' 
+                                ? 'bg-amber-600 border-amber-500 text-white' 
+                                : 'bg-stone-700 border-stone-600 text-stone-400 hover:bg-stone-600'
+                            }`}
+                          >
+                            Square
+                          </button>
+                       </div>
+                    </div>
+
+                    {/* Topology Pattern */}
+                    <div className={`transition-opacity duration-200 ${data.border.thickness < 3 ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                       <div className="flex justify-between mb-1">
+                         <label className="block text-xs uppercase font-bold text-stone-400">Weave Pattern</label>
+                         {data.border.thickness < 3 && (
+                           <span className="text-[10px] text-amber-500 italic">Requires 3+ Rows</span>
+                         )}
+                       </div>
+                       <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => updateBorder('pattern', 'braid')}
+                            className={`py-2 text-xs font-bold rounded border ${
+                              data.border.pattern === 'braid' 
+                                ? 'bg-amber-600 border-amber-500 text-white' 
+                                : 'bg-stone-700 border-stone-600 text-stone-400 hover:bg-stone-600'
+                            }`}
+                          >
+                            Standard Braid
+                          </button>
+                          <button
+                            onClick={() => updateBorder('pattern', 'box')}
+                            className={`py-2 text-xs font-bold rounded border ${
+                              data.border.pattern === 'box' 
+                                ? 'bg-amber-600 border-amber-500 text-white' 
+                                : 'bg-stone-700 border-stone-600 text-stone-400 hover:bg-stone-600'
+                            }`}
+                          >
+                            Box Weave
+                          </button>
+                           <button
+                            onClick={() => updateBorder('pattern', 'twist-x')}
+                            className={`py-2 text-xs font-bold rounded border ${
+                              data.border.pattern === 'twist-x' 
+                                ? 'bg-amber-600 border-amber-500 text-white' 
+                                : 'bg-stone-700 border-stone-600 text-stone-400 hover:bg-stone-600'
+                            }`}
+                          >
+                            Vert. Twist
+                          </button>
+                           <button
+                            onClick={() => updateBorder('pattern', 'twist-y')}
+                            className={`py-2 text-xs font-bold rounded border ${
+                              data.border.pattern === 'twist-y' 
+                                ? 'bg-amber-600 border-amber-500 text-white' 
+                                : 'bg-stone-700 border-stone-600 text-stone-400 hover:bg-stone-600'
+                            }`}
+                          >
+                            Horz. Twist
+                          </button>
+                       </div>
+                    </div>
+
+                    {/* Inset */}
+                    <div>
+                      <div className="flex justify-between mb-1">
+                        <label className="text-xs font-bold text-stone-400 uppercase">Margin Inset</label>
+                        <span className="text-xs text-stone-500">{data.border.inset}px</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="50" 
+                        step="5"
+                        value={data.border.inset} 
+                        onChange={(e) => updateBorder('inset', parseInt(e.target.value))}
+                        className="w-full h-2 bg-stone-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                      />
+                    </div>
+
+                    {/* Colors */}
+                     <div className="grid grid-cols-2 gap-4 pt-2 border-t border-stone-700">
+                        <div>
+                          <label className="block text-xs uppercase font-bold text-stone-400 mb-1">Line Color</label>
+                          <div className="flex items-center gap-2">
+                            <input 
+                              type="color" 
+                              value={data.border.color}
+                              onChange={(e) => updateBorder('color', e.target.value)}
+                              className="h-8 w-full bg-transparent border border-stone-600 rounded cursor-pointer"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                           <label className="block text-xs uppercase font-bold text-stone-400 mb-1">Inner / Ribbon</label>
+                           <div className="flex items-center gap-2 h-8">
+                             {data.border.innerColor ? (
+                               <>
+                                <input 
+                                  type="color" 
+                                  value={data.border.innerColor}
+                                  onChange={(e) => updateBorder('innerColor', e.target.value)}
+                                  className="h-full flex-grow bg-transparent border border-stone-600 rounded cursor-pointer"
+                                />
+                                <button 
+                                  onClick={() => updateBorder('innerColor', undefined)}
+                                  className="h-full px-2 text-red-400 hover:bg-stone-700 rounded"
+                                  title="Remove Inner Color"
+                                >
+                                  <X size={14} />
+                                </button>
+                               </>
+                             ) : (
+                               <button 
+                                 onClick={() => updateBorder('innerColor', '#fbbf24')} // Default gold
+                                 className="w-full h-full text-xs bg-stone-700 text-stone-400 rounded border border-stone-600 hover:text-white"
+                               >
+                                 + Add Fill
+                               </button>
+                             )}
+                           </div>
+                        </div>
+                    </div>
+                 </div>
+                 
+                 <div className="p-3 bg-stone-800/50 rounded border border-stone-700 text-xs text-stone-500 italic">
+                    Combine "Line Width" and "Inner Color" to create intricate ribbon effects. Increase Rows to 3 to use complex patterns.
+                 </div>
+               </div>
+             ) : (
+                <div className="text-center py-10 text-stone-500 border border-dashed border-stone-700 rounded-lg">
+                  <Frame className="mx-auto w-10 h-10 mb-2 opacity-30" />
+                  <p className="text-sm">Border disabled</p>
+                </div>
+             )}
+           </div>
         )}
 
         {/* HERALDRY TAB */}
