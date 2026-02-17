@@ -52,12 +52,14 @@ export interface ScrollData {
   giver: string;
   reason: string;
   theme: AwardTheme;
+  backgroundImage: string | null;
   titleFont: ScrollFont;
   bodyFont: ScrollFont;
   recipientFont: ScrollFont;
   signatureFont: ScrollFont;
   heraldryImage: string | null; // base64
-  heraldryPosition: 'top-left' | 'top-right' | 'bottom-center' | 'watermark';
+  heraldryPosition: 'top-left' | 'top-right' | 'bottom-center' | 'watermark' | 'signature-left' | 'signature-right';
+  heraldryScale: number;
   
   // Border
   border: BorderConfig;

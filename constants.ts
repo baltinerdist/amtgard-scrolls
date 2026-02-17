@@ -1,5 +1,44 @@
 import { AwardTheme, AwardType, ScrollFont } from './types';
 
+// Embedded SVG Parchment Texture
+const PARCHMENT_SVG = `data:image/svg+xml;charset=utf-8,%3Csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5' result='noise'/%3E%3CfeDiffuseLighting in='noise' lighting-color='%23e8dcb9' surfaceScale='2'%3E%3CfeDistantLight azimuth='45' elevation='60'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='100%25' height='100%25' fill='%23e8dcb9'/%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.6'/%3E%3Crect width='100%25' height='100%25' fill='%23d4c5a5' opacity='0.2'/%3E%3C/svg%3E`;
+
+export const OBJECTS = [
+  { id: 'anvil', label: 'Anvil', path: 'assets/objects/anvil.svg' },
+  { id: 'battle-dragon', label: 'Battle with Dragon', path: 'assets/objects/battle-dragon.svg' },
+  { id: 'castle', label: 'Castle', path: 'assets/objects/castle.svg' },
+  { id: 'crown', label: 'Crown', path: 'assets/objects/crown.svg' },
+  { id: 'crown-2', label: 'Crown 2', path: 'assets/objects/crown-2.svg' },
+  { id: 'dragon', label: 'Dragon', path: 'assets/objects/dragon.svg' },
+  { id: 'dragon-2', label: 'Dragon 2', path: 'assets/objects/dragon-2.svg' },
+  { id: 'drama-masks', label: 'Drama Masks', path: 'assets/objects/drama-masks.svg' },
+  { id: 'flame', label: 'Flame', path: 'assets/objects/flame.svg' },
+  { id: 'flame-knot', label: 'Flame Knot', path: 'assets/objects/flame-knot.svg' },
+  { id: 'flame-torch', label: 'Flame Torch', path: 'assets/objects/flame-torch.svg' },
+  { id: 'flame-torch-2', label: 'Flame Torch 2', path: 'assets/objects/flame-torch-2.svg' },
+  { id: 'fleur-de-lis', label: 'Fleur de Lis', path: 'assets/objects/fleur-de-lis.svg' },
+  { id: 'herald', label: 'Herald', path: 'assets/objects/herald.svg' },
+  { id: 'knight', label: 'Gallant Knight', path: 'assets/objects/knight.svg' },
+  { id: 'lion-sword', label: 'Warrior / Lion', path: 'assets/objects/lion-sword.svg' },
+  { id: 'mallet', label: 'Mallet', path: 'assets/objects/mallet.svg' },
+  { id: 'mask', label: 'Mask', path: 'assets/objects/mask.svg' },
+  { id: 'owl', label: 'Owl', path: 'assets/objects/owl.svg' },
+  { id: 'rose-scroll', label: 'Rose in Scroll', path: 'assets/objects/rose-scroll.svg' },
+  { id: 'rose-2', label: 'Rose 2', path: 'assets/objects/rose-2.svg' },
+  { id: 'scissors', label: 'Scissors', path: 'assets/objects/scissors.svg' },
+  { id: 'sword', label: 'Sword', path: 'assets/objects/sword.svg' },
+  { id: 'unicorn', label: 'Unicorn', path: 'assets/objects/unicorn.svg' },
+  { id: 'zodiac', label: 'Zodiac', path: 'assets/objects/zodiac.svg' },
+  { id: 'bow', label: 'Archer / Bow', path: 'assets/objects/bow-and-arrow.svg' },
+  { id: 'griffon', label: 'Order of the Griffon', path: 'assets/objects/griffon.svg' },
+  { id: 'joker', label: 'Order of the Joker', path: 'assets/objects/joker.svg' },
+];
+
+export const BACKGROUNDS = [
+  { id: 'none', label: 'None', value: null },
+  { id: 'parchment-1', label: 'Aged Parchment', value: PARCHMENT_SVG },
+];
+
 export const DEFAULT_SCROLL_DATA = {
   location: 'Amtgard',
   recipient: 'Lady Alara',
@@ -17,22 +56,24 @@ export const DEFAULT_SCROLL_DATA = {
     accentColor: 'text-red-900',
     textureOpacity: 0.1,
   },
+  backgroundImage: null,
   titleFont: ScrollFont.ANCIENT,
   bodyFont: ScrollFont.CINZEL,
   recipientFont: ScrollFont.ANCIENT,
   signatureFont: ScrollFont.ANCIENT,
   heraldryImage: null,
   heraldryPosition: 'bottom-center' as const,
+  heraldryScale: 0.6,
   
   // Border Defaults
   border: {
     enabled: true,
     size: 25,
-    thickness: 3, // Increased to 3 to make patterns visible by default
+    thickness: 3,
     inset: 15,
-    color: '#7f1d1d', // Match warrior red
+    color: '#7f1d1d',
     strokeWidth: 4,
-    innerColor: '#fcd34d', // Gold inner
+    innerColor: '#fcd34d',
     pattern: 'braid' as const,
     cornerStyle: 'round' as const,
   },

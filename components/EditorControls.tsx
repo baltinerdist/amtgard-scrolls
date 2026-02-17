@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AwardType, ScrollData } from '../types';
-import { FONTS, THEMES } from '../constants';
-import { Scroll, Paintbrush, Printer, RotateCw, RectangleVertical, RectangleHorizontal, Minus, Plus, Frame, X } from 'lucide-react';
+import { FONTS, THEMES, BACKGROUNDS } from '../constants';
+import { Scroll, Paintbrush, Printer, RotateCw, RectangleVertical, RectangleHorizontal, Minus, Plus, Frame, X, Image as ImageIcon } from 'lucide-react';
 import { HeraldryUploader } from './HeraldryUploader';
 
 interface EditorControlsProps {
@@ -187,7 +187,6 @@ export const EditorControls: React.FC<EditorControlsProps> = ({
                 </div>
               )}
 
-              {/* Order Level Selector - Show for custom or ladder awards */}
               {(isLadderAward || data.awardType === 'Custom Award') && (
                  <div>
                     <label className="block text-xs uppercase font-bold text-stone-400 mb-1">Award Level (Order)</label>
@@ -248,10 +247,36 @@ export const EditorControls: React.FC<EditorControlsProps> = ({
         {/* DESIGN TAB */}
         {activeTab === 'design' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-            
-            {/* Theme Selection */}
             <div>
-              <label className="block text-xs uppercase font-bold text-stone-400 mb-2">Scroll Theme</label>
+               <label className="block text-xs uppercase font-bold text-stone-400 mb-2">Background Texture</label>
+               <div className="grid grid-cols-3 gap-2">
+                 {BACKGROUNDS.map(bg => (
+                   <button
+                     key={bg.id}
+                     onClick={() => updateField('backgroundImage', bg.value)}
+                     className={`relative aspect-[3/4] rounded-lg border-2 overflow-hidden group transition-all ${
+                       data.backgroundImage === bg.value
+                         ? 'border-amber-500 ring-1 ring-amber-500'
+                         : 'border-stone-700 hover:border-stone-500'
+                     }`}
+                   >
+                     {bg.value ? (
+                       <img src={bg.value} alt={bg.label} className="w-full h-full object-cover" />
+                     ) : (
+                       <div className="w-full h-full bg-stone-800 flex items-center justify-center text-stone-600">
+                         <X size={20} />
+                       </div>
+                     )}
+                     <div className="absolute inset-x-0 bottom-0 bg-black/60 p-1 text-[10px] text-center font-bold text-stone-200 backdrop-blur-sm">
+                       {bg.label}
+                     </div>
+                   </button>
+                 ))}
+               </div>
+            </div>
+
+            <div className="pt-4 border-t border-stone-700">
+              <label className="block text-xs uppercase font-bold text-stone-400 mb-2">Theme Colors</label>
               <div className="grid grid-cols-2 gap-2">
                 {THEMES.map(theme => (
                   <button
@@ -270,8 +295,7 @@ export const EditorControls: React.FC<EditorControlsProps> = ({
               </div>
             </div>
 
-            {/* Orientation */}
-            <div>
+            <div className="pt-4 border-t border-stone-700">
                <label className="block text-xs uppercase font-bold text-stone-400 mb-2">Orientation</label>
                <div className="flex gap-2">
                  <button
@@ -297,7 +321,6 @@ export const EditorControls: React.FC<EditorControlsProps> = ({
                </div>
             </div>
 
-            {/* Typography */}
             <div className="pt-4 border-t border-stone-700 space-y-4">
                <h3 className="text-amber-500 font-bold uppercase text-sm flex items-center gap-2">
                  <Paintbrush size={16} /> Typography
@@ -367,8 +390,6 @@ export const EditorControls: React.FC<EditorControlsProps> = ({
              {data.border.enabled ? (
                <div className="space-y-4">
                  <div className="bg-stone-800 p-4 rounded border border-stone-700 space-y-4">
-                    
-                    {/* Size and Thickness */}
                     <div className="grid grid-cols-2 gap-4">
                        <div>
                           <div className="flex justify-between mb-1">
@@ -402,7 +423,6 @@ export const EditorControls: React.FC<EditorControlsProps> = ({
                        </div>
                     </div>
                     
-                    {/* Width in Cells */}
                     <div>
                       <div className="flex justify-between mb-1">
                          <label className="text-xs font-bold text-stone-400 uppercase">Border Rows</label>
@@ -425,7 +445,6 @@ export const EditorControls: React.FC<EditorControlsProps> = ({
                       </div>
                     </div>
 
-                    {/* Corner Style */}
                     <div>
                        <div className="flex justify-between mb-1">
                          <label className="block text-xs uppercase font-bold text-stone-400">Knot Style</label>
@@ -464,7 +483,6 @@ export const EditorControls: React.FC<EditorControlsProps> = ({
                        </div>
                     </div>
 
-                    {/* Topology Pattern */}
                     <div className={`transition-opacity duration-200 ${data.border.thickness < 3 ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
                        <div className="flex justify-between mb-1">
                          <label className="block text-xs uppercase font-bold text-stone-400">Weave Pattern</label>
@@ -516,7 +534,6 @@ export const EditorControls: React.FC<EditorControlsProps> = ({
                        </div>
                     </div>
 
-                    {/* Inset */}
                     <div>
                       <div className="flex justify-between mb-1">
                         <label className="text-xs font-bold text-stone-400 uppercase">Margin Inset</label>
@@ -533,7 +550,6 @@ export const EditorControls: React.FC<EditorControlsProps> = ({
                       />
                     </div>
 
-                    {/* Colors */}
                      <div className="grid grid-cols-2 gap-4 pt-2 border-t border-stone-700">
                         <div>
                           <label className="block text-xs uppercase font-bold text-stone-400 mb-1">Line Color</label>
@@ -597,8 +613,10 @@ export const EditorControls: React.FC<EditorControlsProps> = ({
              <HeraldryUploader 
                image={data.heraldryImage}
                position={data.heraldryPosition}
+               scale={data.heraldryScale}
                onImageChange={(img) => updateField('heraldryImage', img)}
                onPositionChange={(pos) => updateField('heraldryPosition', pos)}
+               onScaleChange={(scale) => updateField('heraldryScale', scale)}
              />
              <div className="mt-6 text-xs text-stone-500 italic p-4 bg-stone-800/50 rounded border border-stone-700">
                <p>Tip: Use transparent PNGs for the best effect. You can position the sigil as a watermark behind the text or as a stamp in the corners.</p>
@@ -608,7 +626,6 @@ export const EditorControls: React.FC<EditorControlsProps> = ({
 
       </div>
 
-      {/* Footer / Actions */}
       <div className="p-6 border-t border-stone-700 bg-stone-950 flex flex-col gap-3">
         <button 
           onClick={handlePrint}

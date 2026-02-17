@@ -23,12 +23,14 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
     giver, 
     reason, 
     theme, 
+    backgroundImage,
     titleFont, 
     bodyFont, 
     recipientFont,
     signatureFont,
     heraldryImage, 
     heraldryPosition,
+    heraldryScale,
     orientation,
     titleFontSize,
     recipientFontSize,
@@ -40,7 +42,6 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
   const isLandscape = orientation === 'landscape';
 
   // Refs for layout measurement
-  const containerRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const scrollContentRef = useRef<HTMLDivElement>(null);
 
@@ -58,7 +59,7 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
     }
   }, [orientation, border.size, border.thickness, border.inset]);
 
-  // Also update on resize
+  // Handle Resize
   useEffect(() => {
     const handleResize = () => {
         if (scrollContentRef.current) {
@@ -72,49 +73,43 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   
-  // Reset scales when data impacting layout changes
+  // Stability: Reset scales ONLY when structural properties change (Font, Size, Orientation, Type)
+  // This prevents the scale from snapping back to 1.0 and re-shrinking on every character typed.
   useEffect(() => {
     setScales({ reason: 1, title: 1, recipient: 1 });
   }, [
-    location, recipient, awardType, customAwardName, awardLevel, 
-    reason, titleFont, bodyFont, recipientFont, orientation,
-    titleFontSize, recipientFontSize, bodyFontSize, signatureFontSize
+    awardType, titleFont, bodyFont, recipientFont, 
+    orientation, titleFontSize, recipientFontSize, bodyFontSize, signatureFontSize
   ]);
 
-  // Auto-scaling logic
+  // Auto-scaling logic - runs synchronously before paint to prevent visible resizing jumps
   useLayoutEffect(() => {
     const checkOverflow = () => {
       if (!bodyRef.current || !scrollContentRef.current) return;
       
-      // We check if the body content (scrolling height) is larger than the container allocated for it
-      // OR if the total content is overflowing the fixed page size
-      
       const bodyEl = bodyRef.current;
-      const hasOverflow = bodyEl.scrollHeight > bodyEl.clientHeight + 2; // +2 tolerance
+      // 4px tolerance allows for subpixel rendering differences across browsers
+      const hasOverflow = bodyEl.scrollHeight > bodyEl.clientHeight + 4;
 
       if (hasOverflow) {
         setScales(prev => {
-          // Priority 1: Shrink Reason
           if (prev.reason > 0.6) {
-            return { ...prev, reason: prev.reason * 0.95 };
+            return { ...prev, reason: prev.reason * 0.97 }; // Steady shrink
           }
-          // Priority 2: Shrink Award Type (Title)
           if (prev.title > 0.6) {
-            return { ...prev, title: prev.title * 0.95 };
+            return { ...prev, title: prev.title * 0.97 };
           }
-          // Priority 3: Shrink Recipient
           if (prev.recipient > 0.6) {
-             return { ...prev, recipient: prev.recipient * 0.95 };
+             return { ...prev, recipient: prev.recipient * 0.97 };
           }
           return prev;
         });
       }
     };
 
-    // Run check
-    const timeout = setTimeout(checkOverflow, 0);
+    const timeout = setTimeout(checkOverflow, 10);
     return () => clearTimeout(timeout);
-  }, [scales, data]); // Re-run when scales update or data changes
+  }, [scales, reason, recipient, location, customAwardName, awardLevel]);
 
   const handleEdit = (field: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -141,69 +136,104 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
     </span>
   );
 
-  // Calculate container styles based on theme
   const containerStyle: React.CSSProperties = {
     fontFamily: bodyFont,
   };
 
-  // Border Style
-  // If Celtic border is enabled, we remove the CSS border
   const borderClass = border.enabled ? '' : `border-[12px] double ${theme.borderColor}`;
-
   const displayName = awardType === 'Custom Award' ? customAwardName : awardType;
-
-  // Orientation logic
   const aspectRatioClass = isLandscape ? 'aspect-[1.29/1]' : 'aspect-[1/1.29]';
-  
-  // Padding - Increase if border is enabled to prevent overlap
-  const basePadding = isLandscape ? 32 : 48; // px
+  const basePadding = isLandscape ? 32 : 48; 
   const borderPadding = border.enabled ? (border.thickness * border.size) + border.inset + 10 : 0;
   const paddingStyle = { padding: `${Math.max(basePadding, borderPadding)}px` };
-
-  // Apply a slight scale down for fonts in landscape mode to ensure fit
   const fontScale = isLandscape ? 0.85 : 1.0;
 
-  // Final Font Sizes with Dynamic Scaling
   const tSize = Math.max(12, titleFontSize * fontScale * scales.title);
   const rSize = Math.max(12, recipientFontSize * fontScale * scales.recipient);
   const bSize = Math.max(10, bodyFontSize * fontScale * scales.reason);
   const sSize = Math.max(10, signatureFontSize * fontScale);
 
-  // Watermark style if present
   const renderHeraldry = () => {
     if (!heraldryImage) return null;
     
-    let positionClasses = '';
+    // Signature positions are handled inline in the footer grid
+    if (heraldryPosition === 'signature-left' || heraldryPosition === 'signature-right') return null;
+
+    let positionStyles: React.CSSProperties = {};
+    const baseW = isLandscape ? 80 : 96; 
+    const baseH = isLandscape ? 80 : 96;
 
     switch (heraldryPosition) {
       case 'top-left':
-        positionClasses = `absolute ${isLandscape ? 'top-8 left-8 w-20 h-20' : 'top-12 left-12 w-24 h-24'} object-contain opacity-90 z-10`;
-        // Adjust for border if needed
+        positionStyles = {
+          position: 'absolute',
+          top: isLandscape ? '2rem' : '3rem',
+          left: isLandscape ? '2rem' : '3rem',
+          width: `${baseW * heraldryScale}px`,
+          height: `${baseH * heraldryScale}px`,
+          opacity: 0.9,
+          zIndex: 10,
+        };
         break;
       case 'top-right':
-        positionClasses = `absolute ${isLandscape ? 'top-8 right-8 w-20 h-20' : 'top-12 right-12 w-24 h-24'} object-contain opacity-90 z-10`;
+        positionStyles = {
+          position: 'absolute',
+          top: isLandscape ? '2rem' : '3rem',
+          right: isLandscape ? '2rem' : '3rem',
+          width: `${baseW * heraldryScale}px`,
+          height: `${baseH * heraldryScale}px`,
+          opacity: 0.9,
+          zIndex: 10,
+        };
         break;
       case 'bottom-center':
-        positionClasses = `absolute ${isLandscape ? 'bottom-8 w-24 h-24' : 'bottom-12 w-32 h-32'} left-1/2 -translate-x-1/2 object-contain opacity-90 z-10`;
+        const bottomBase = isLandscape ? 96 : 128;
+        positionStyles = {
+          position: 'absolute',
+          bottom: isLandscape ? '2rem' : '3rem',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: `${bottomBase * heraldryScale}px`,
+          height: `${bottomBase * heraldryScale}px`,
+          opacity: 0.9,
+          zIndex: 10,
+        };
         break;
       case 'watermark':
-        positionClasses = 'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 object-contain opacity-10 pointer-events-none z-0 mix-blend-multiply';
+        positionStyles = {
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: `${75 * heraldryScale}%`,
+          height: `${75 * heraldryScale}%`,
+          opacity: 0.1,
+          pointerEvents: 'none',
+          zIndex: 0,
+          mixBlendMode: 'multiply',
+        };
         break;
     }
 
-    return <img src={heraldryImage} alt="Heraldry" className={positionClasses} />;
+    return <img src={heraldryImage} alt="Sigil" style={positionStyles} className="object-contain" />;
   };
+
+  const isSignatureLayoutMod = heraldryImage && (heraldryPosition === 'signature-left' || heraldryPosition === 'signature-right');
 
   return (
     <div className="w-full h-full flex items-center justify-center p-4 bg-stone-800/50 backdrop-blur-sm overflow-hidden">
-      {/* The Scroll Sheet - Fixed Page Size Strategy */}
       <div 
         ref={scrollContentRef}
         id="scroll-content"
         className={`print-area relative bg-gradient-to-br ${theme.bgGradient} shadow-2xl ${borderClass} ${aspectRatioClass} h-[95vh] w-auto max-w-[95vw] flex flex-col items-center text-center select-none overflow-hidden`}
         style={{...containerStyle, ...paddingStyle}}
       >
-        {/* Texture Overlay */}
+        {backgroundImage && (
+           <div className="absolute inset-0 pointer-events-none z-0">
+             <img src={backgroundImage} alt="Background" className="w-full h-full object-cover opacity-100" />
+           </div>
+        )}
+
         <div 
           className="absolute inset-0 pointer-events-none z-0" 
           style={{ 
@@ -212,7 +242,6 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
           }}
         />
 
-        {/* Celtic Border Layer */}
         {border.enabled && dimensions.width > 0 && (
           <CelticBorder 
             width={dimensions.width}
@@ -225,19 +254,15 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
             innerColor={border.innerColor}
             pattern={border.pattern}
             cornerStyle={border.cornerStyle}
+            heraldryPosition={heraldryPosition}
+            heraldryScale={heraldryScale}
+            hasHeraldry={!!heraldryImage}
           />
         )}
 
-        {/* Heraldry Layer */}
         {renderHeraldry()}
 
-        {/* Content Flex Container - Fills the Page */}
-        <div 
-          ref={containerRef}
-          className="relative z-10 w-full h-full flex flex-col items-center"
-        >
-          
-          {/* Top Metadata */}
+        <div className="relative z-10 w-full h-full flex flex-col items-center">
           <div className="flex-shrink-0 w-full space-y-2 pb-2">
             <div className={`text-xl uppercase tracking-[0.2em] ${theme.accentColor} opacity-70`}>
               <div 
@@ -250,24 +275,20 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
             </div>
           </div>
 
-          {/* Main Content Flow */}
           <div 
             ref={bodyRef}
             className="flex-grow flex flex-col justify-center items-center w-full min-h-0 overflow-hidden"
           >
              <div className="flex flex-col items-center justify-center gap-4 md:gap-6 w-full h-full">
-                
-                {/* Intro Line */}
                 <div className={`flex-shrink-0 ${theme.accentColor}`} style={{ fontSize: `${bSize * 1.1}px` }}>
                   Let it be known by these words that
                 </div>
                 
-                {/* Recipient - Dynamic Scale */}
                 <div className="flex-shrink-0 px-8">
                   <div 
                     className={`${editableClass} inline-block border-b-2 ${theme.borderColor.replace('border-', 'border-b-')} pb-2 leading-none`}
                     onClick={(e) => handleEdit('recipient', e)}
-                    style={{ fontFamily: recipientFont, color: '#1c1917', fontSize: `${rSize}px`, transition: 'font-size 0.2s' }}
+                    style={{ fontFamily: recipientFont, color: '#1c1917', fontSize: `${rSize}px` }}
                   >
                     {editableHint}
                     <span className="font-bold">
@@ -276,12 +297,10 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
                   </div>
                 </div>
 
-                {/* Connecting Phrase */}
                 <div className={`flex-shrink-0 uppercase tracking-widest ${theme.accentColor} opacity-80 font-serif`} style={{ fontSize: `${bSize * 0.8}px` }}>
                   Has been granted the
                 </div>
 
-                {/* Award Name & Level */}
                 <div className="flex flex-col items-center">
                   <div 
                     className={`${editableClass} inline-block leading-none`}
@@ -290,7 +309,7 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
                     {editableHint}
                     <h1 
                       className={`font-bold leading-tight ${theme.accentColor} drop-shadow-sm px-4`}
-                      style={{ fontFamily: titleFont, fontSize: `${tSize}px`, transition: 'font-size 0.2s' }}
+                      style={{ fontFamily: titleFont, fontSize: `${tSize}px` }}
                     >
                       {displayName}
                     </h1>
@@ -308,11 +327,10 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
                   )}
                 </div>
 
-                {/* Reason - Dynamic Scale - Can shrink significantly */}
                 <div 
                   className={`${editableClass} leading-relaxed text-stone-800 italic px-8 whitespace-pre-wrap max-w-2xl`}
                   onClick={(e) => handleEdit('reason', e)}
-                  style={{ fontSize: `${bSize}px`, transition: 'font-size 0.2s' }}
+                  style={{ fontSize: `${bSize}px` }}
                 >
                   {editableHint}
                   "{reason}"
@@ -320,8 +338,19 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
              </div>
           </div>
 
-          {/* Footer Section */}
-          <div className="flex-shrink-0 w-full grid grid-cols-2 gap-8 pt-6 mt-4 border-t border-stone-400/30">
+          <div className={`flex-shrink-0 w-full grid ${isSignatureLayoutMod ? 'grid-cols-3' : 'grid-cols-2'} gap-4 md:gap-8 pt-6 mt-4 border-t border-stone-400/30 items-end`}>
+            
+            {heraldryPosition === 'signature-left' && heraldryImage && (
+              <div className="flex flex-col items-center justify-center pb-2">
+                 <img 
+                    src={heraldryImage} 
+                    alt="Sigil" 
+                    className="object-contain" 
+                    style={{ width: `${80 * heraldryScale}px`, height: `${80 * heraldryScale}px` }}
+                 />
+              </div>
+            )}
+
             <div className="flex flex-col items-center gap-1">
               <div className={editableClass} onClick={(e) => handleEdit('date', e)}>
                  {editableHint}
@@ -329,6 +358,7 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
               </div>
               <span className="text-xs uppercase tracking-widest text-stone-500 font-sans">Given This Day</span>
             </div>
+
             <div className="flex flex-col items-center gap-1">
               <div className={editableClass} onClick={(e) => handleEdit('giver', e)}>
                  {editableHint}
@@ -336,8 +366,18 @@ export const ScrollPreview: React.FC<ScrollPreviewProps> = ({ data, onEditField 
               </div>
               <span className="text-sm uppercase tracking-widest text-stone-500 font-sans">By The Hand Of</span>
             </div>
-          </div>
 
+            {heraldryPosition === 'signature-right' && heraldryImage && (
+              <div className="flex flex-col items-center justify-center pb-2">
+                 <img 
+                    src={heraldryImage} 
+                    alt="Sigil" 
+                    className="object-contain" 
+                    style={{ width: `${80 * heraldryScale}px`, height: `${80 * heraldryScale}px` }}
+                 />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
